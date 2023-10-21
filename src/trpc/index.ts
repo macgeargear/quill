@@ -3,6 +3,7 @@ import { privateProcedure, publicProcedure, router } from "./trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@/db";
 import { z } from "zod";
+import { CarTaxiFront } from "lucide-react";
 
 export const appRouter = router({
   authCallback: publicProcedure.query(async () => {
@@ -33,6 +34,29 @@ export const appRouter = router({
       where: { userId },
     });
   }),
+
+  getFile: privateProcedure
+    .input(z.object({ key: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = ctx;
+      const file = await db.file.findFirst({
+        where: { key: input.key, userId },
+      });
+
+      if (!file) throw new TRPCError({ code: "NOT_FOUND" });
+      return file;
+    }),
+
+  getFileUploadStatus: privateProcedure
+    .input(z.object({ fileId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const file = await db.file.findFirst({
+        where: { id: input.fileId, userId: ctx.userId },
+      });
+      if (!file) return { status: "PENDING" as const };
+      return { status: file.uploadStatus };
+    }),
+
   deleteFile: privateProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
